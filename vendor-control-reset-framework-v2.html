@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vendor Control Reset Framework | Project Rescue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --charcoal:#232323;
+    --charcoal-2:#2f2f2f;
+    --paper:#f6f5f2;
+    --paper-2:#eceae4;
+    --ink:#1c1c1c;
+    --muted:#6b6b6b;
+    --rescue-orange:#e0451b;
+    --steel:#8fa4b3;
+    --steel-dark:#5c7383;
+    --rag-green:#3f7350;
+    --rag-amber:#c98a1f;
+    --rag-red:#b23a2e;
+    --line:#d8d5cd;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.5;}
+  .wrap{max-width:760px;margin:0 auto;padding:0 0 80px;}
+
+  header{background:var(--charcoal);padding:36px 28px 30px;position:relative;overflow:hidden;}
+  header::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg, transparent 0%, transparent 97%, var(--rescue-orange) 97%, var(--rescue-orange) 100%);opacity:.9;}
+  .brand{font-family:'Archivo Black',sans-serif;color:var(--rescue-orange);font-size:15px;letter-spacing:2px;margin:0 0 4px;position:relative;}
+  .brand span{color:#c9c9c9;font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:4px;font-size:12px;margin-left:8px;}
+  h1{font-family:'Barlow Condensed',sans-serif;font-weight:700;color:#f6f5f2;font-size:29px;letter-spacing:.5px;margin:6px 0 4px;position:relative;}
+  .subtitle{font-family:'Barlow Condensed',sans-serif;color:var(--rescue-orange);font-size:15px;font-weight:600;margin:0 0 10px;position:relative;}
+  header p.desc{color:#b9b9b9;max-width:58ch;font-size:14.5px;margin:0;position:relative;}
+
+  .status-panel{position:sticky;top:0;z-index:20;background:var(--charcoal-2);border-bottom:2px solid var(--rescue-orange);padding:14px 28px;display:flex;align-items:center;gap:18px;font-family:'Barlow Condensed',sans-serif;}
+  .rag-dot{width:16px;height:16px;border-radius:50%;background:#4a4a4a;flex-shrink:0;transition:background .4s ease;box-shadow:0 0 0 4px rgba(255,255,255,.05);}
+  .status-text{color:#e8e8e8;font-size:16px;font-weight:600;letter-spacing:.3px;}
+  .status-text .label{color:var(--rescue-orange);font-weight:700;}
+  .status-track{flex:1;height:6px;background:#484848;border-radius:3px;overflow:hidden;min-width:60px;}
+  .status-fill{height:100%;width:0%;background:#4a4a4a;transition:width .4s ease, background .4s ease;}
+  .status-score{font-family:'JetBrains Mono',monospace;color:#f6f5f2;font-weight:700;font-size:15px;min-width:56px;text-align:right;}
+
+  .prose-block{margin:24px 28px;padding:20px 22px;background:var(--paper-2);border-left:4px solid var(--steel-dark);font-size:14.5px;color:#3a3a3a;}
+  .prose-block p{margin:0 0 10px;}
+  .prose-block p:last-child{margin-bottom:0;}
+  .prose-block strong{color:var(--ink);}
+
+  .section-heading{margin:32px 28px 12px;font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:var(--ink);border-bottom:2px solid var(--charcoal);padding-bottom:8px;}
+
+  .why-block{margin:0 28px 22px;border:1px solid var(--line);background:#fff;}
+  .why-head{background:var(--charcoal);color:#f6f5f2;padding:14px 18px;font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:600;}
+  .why-list{margin:0;padding:16px 20px 6px 40px;}
+  .why-list li{font-size:14.5px;color:#2b2b2b;padding:5px 0;}
+  .why-result{padding:12px 20px 16px;font-size:13.5px;color:var(--steel-dark);font-style:italic;border-top:1px dashed var(--line);}
+
+  .indicator-block{margin:0 28px 22px;border:1px solid var(--line);background:#fff;}
+  .ib-head{background:var(--charcoal);color:#f6f5f2;padding:14px 18px;font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:600;}
+  .ib-sub{font-size:12.5px;color:#c9c9c9;font-family:'Inter',sans-serif;margin-top:4px;}
+  .item{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;gap:12px;cursor:pointer;}
+  .item:last-of-type{border-bottom:none;}
+  .item:hover{background:var(--paper);}
+  .item input[type="checkbox"]{width:20px;height:20px;margin-top:1px;flex-shrink:0;accent-color:var(--rescue-orange);cursor:pointer;}
+  .item label{font-size:14.5px;color:#2b2b2b;cursor:pointer;}
+  .ib-footer{padding:12px 20px;background:var(--paper);font-size:12.5px;color:var(--steel-dark);font-style:italic;border-top:1px dashed var(--line);}
+
+  .phase{margin:0 28px 22px;border:1px solid var(--line);background:#fff;}
+  .phase-head{background:var(--charcoal);color:#f6f5f2;padding:16px 18px;font-family:'Barlow Condensed',sans-serif;}
+  .phase-num{font-family:'JetBrains Mono',monospace;color:var(--rescue-orange);font-size:13px;font-weight:700;margin-right:10px;}
+  .phase-title{font-size:20px;font-weight:600;letter-spacing:.3px;}
+  .phase-objective{font-size:12.5px;color:#c9c9c9;font-family:'Inter',sans-serif;margin-top:4px;}
+  .phase-objective strong{color:#f6f5f2;}
+  .phase-note{padding:12px 20px;font-size:13px;color:var(--steel-dark);font-style:italic;background:var(--paper);border-bottom:1px solid var(--line);}
+
+  .section-label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--steel-dark);font-weight:700;padding:14px 20px 6px;}
+  .outputs-list{padding:6px 20px 16px;margin:0;list-style:none;}
+  .outputs-list li{font-size:13.5px;color:var(--steel-dark);padding:4px 0 4px 18px;position:relative;}
+  .outputs-list li::before{content:"→";position:absolute;left:0;color:var(--rescue-orange);font-weight:700;}
+  .phase-footer{padding:12px 20px;background:var(--paper);font-size:12.5px;color:var(--steel-dark);font-style:italic;border-top:1px dashed var(--line);}
+  .phase-progress{padding:10px 20px;background:var(--paper);border-top:1px solid var(--line);font-size:12.5px;color:var(--ink);font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:10px;}
+  .phase-progress-track{flex:1;height:5px;background:var(--line);border-radius:3px;overflow:hidden;}
+  .phase-progress-fill{height:100%;background:var(--rescue-orange);width:0%;transition:width .3s ease;}
+
+  .principles{margin:0 28px 22px;border:1px solid var(--line);background:#fff;}
+  .principles-head{background:var(--charcoal-2);color:#f6f5f2;padding:14px 18px;font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:600;}
+  .principles ol{margin:0;padding:16px 20px 6px 40px;}
+  .principles li{font-size:14.5px;color:#2b2b2b;padding:5px 0;}
+  .principles-close{padding:12px 20px 16px;font-size:13.5px;color:var(--steel-dark);font-style:italic;border-top:1px dashed var(--line);}
+
+  .reveal-cta{margin:28px 28px 0;text-align:center;}
+  .reveal-btn{background:var(--rescue-orange);color:#fff;border:none;padding:14px 30px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:17px;letter-spacing:.4px;cursor:pointer;}
+  .reveal-btn:hover{background:#c53a15;}
+  .reveal-hint{font-size:12.5px;color:var(--muted);margin-top:10px;}
+
+  .gate-wrap{display:none;margin:28px 28px 0;border:1px solid var(--line);background:#fff;}
+  .gate-wrap.show{display:block;}
+  .gate-head{background:var(--charcoal);color:#f6f5f2;padding:20px 24px;font-family:'Barlow Condensed',sans-serif;}
+  .gate-head .eyebrow{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--rescue-orange);margin:0 0 6px;font-weight:700;}
+  .gate-head h2{font-size:24px;margin:0 0 6px;font-weight:700;}
+  .gate-head p{color:#c9c9c9;font-family:'Inter',sans-serif;font-size:14px;margin:0;}
+  .gate-form-shell{padding:20px 24px 24px;}
+
+  .results{margin:32px 28px 0;display:none;}
+  .results.show{display:block;}
+  .result-banner{padding:26px 24px;color:#f6f5f2;font-family:'Barlow Condensed',sans-serif;}
+  .result-banner .eyebrow{font-size:12px;letter-spacing:2px;text-transform:uppercase;opacity:.8;margin:0 0 6px;}
+  .result-banner h2{font-size:30px;margin:0 0 8px;font-weight:700;}
+  .result-banner .band-score{font-family:'JetBrains Mono',monospace;font-size:14px;opacity:.9;}
+  .result-body{background:#fff;border:1px solid var(--line);border-top:none;padding:22px 24px 26px;}
+  .result-body p{font-size:14.5px;color:#2b2b2b;margin:0 0 16px;}
+  .breakdown-heading{font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:var(--steel-dark);font-weight:700;margin:18px 0 8px;}
+  .breakdown{display:grid;grid-template-columns:1fr auto;gap:9px 14px;font-size:13.5px;margin-bottom:8px;}
+  .breakdown .name{color:#3a3a3a;}
+  .breakdown .val{font-family:'JetBrains Mono',monospace;font-weight:700;text-align:right;}
+  .breakdown .val.warn{color:var(--rag-red);}
+  .breakdown .val.ok{color:var(--rag-green);}
+  .cta{background:var(--rescue-orange);color:#fff;text-decoration:none;display:inline-block;padding:13px 26px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;letter-spacing:.4px;margin-top:6px;}
+  .cta:hover{background:#c53a15;}
+  .download-btn{background:none;border:1px solid var(--charcoal);color:var(--charcoal);display:inline-block;padding:12px 24px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;letter-spacing:.3px;margin-top:6px;margin-left:10px;cursor:pointer;}
+  .download-btn:hover{background:var(--charcoal);color:#f6f5f2;}
+  .cta-row{display:flex;flex-wrap:wrap;align-items:center;}
+  .reset-link{display:block;margin-top:14px;font-size:12.5px;color:var(--muted);text-decoration:underline;cursor:pointer;background:none;border:none;padding:0;font-family:'Inter',sans-serif;}
+
+  @media (max-width:600px){
+    .status-panel{flex-wrap:wrap;gap:10px;padding:12px 18px;}
+    header, .prose-block, .why-block, .indicator-block, .phase, .principles, .results, .gate-wrap, .reveal-cta, .section-heading{margin-left:14px;margin-right:14px;}
+    header{padding:28px 18px 24px;}
+    h1{font-size:22px;}
+    .download-btn{margin-left:0;margin-top:10px;width:100%;text-align:center;}
+  }
+  @media (prefers-reduced-motion: reduce){*{transition:none !important;}}
+
+  /* MailerLite embed CSS (unmodified, scoped by #mlb2-43828466) */
+  @import url("https://assets.mlcdn.com/fonts.css?version=1784201");
+  .ml-form-embedSubmitLoad { display: inline-block; width: 20px; height: 20px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+  .ml-form-embedSubmitLoad:after { content: " "; display: block; width: 11px; height: 11px; margin: 1px; border-radius: 50%; border: 4px solid #fff; border-color: #ffffff #ffffff #ffffff transparent; animation: ml-form-embedSubmitLoad 1.2s linear infinite; }
+  @keyframes ml-form-embedSubmitLoad { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  #mlb2-43828466.ml-form-embedContainer { box-sizing: border-box; display: table; margin: 0 auto; position: static; width: 100% !important; }
+  #mlb2-43828466.ml-form-embedContainer h4, #mlb2-43828466.ml-form-embedContainer p, #mlb2-43828466.ml-form-embedContainer span, #mlb2-43828466.ml-form-embedContainer button { text-transform: none !important; letter-spacing: normal !important; }
+  #mlb2-43828466.ml-form-embedContainer .ml-form-embedWrapper { background-color: #f63b05; border-width: 0px; border-radius: 4px; border-style: solid; box-sizing: border-box; display: inline-block !important; margin: 0; padding: 0; position: relative; }
+  #mlb2-43828466.ml-form-embedContainer .ml-form-embedWrapper.embedForm { max-width: 400px; width: 100%; }
+  #mlb2-43828466.ml-form-embedContainer .ml-form-align-center { text-align: center; }
+  #mlb2-43828466.ml-form-embedContainer .ml-form-embedWrapper .ml-form-embedBody { padding: 20px 20px 0 20px; }
+  #mlb2-43828466.ml-form-embedContainer .ml-form-embedWrapper .ml-form-embedBody .ml-form-embedContent { text-align: left; margin: 0 0 20px 0; }
+  #mlb2-43828466.ml-form-embedContainer .ml-form-embedWrapper .ml-form-embedBody .ml-form-embedContent h4 { color: #373737; font-family: 'Open Sans', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 400; margin: 0 0 10px 0; text-align: left; }
+  #mlb2-43828466.ml-form-embedContainer .ml-form-embedWrapper .ml-form-embedBody .ml-form-embedContent p { color: #373737; font-family: 'Open Sans', Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 400; line-height: 20px; margin: 0 0 10px 0; text-align: left; }
+  #mlb2-43828466.ml-form-embedContainer .ml-form-embedWrapper .ml-block-form .ml-field-group { text-align: left!important; }
+  #mlb2-43828466.ml-form-embedContainer .ml-form-embedWrapper .ml-form-embedBody form { margin: 0; width: 100%; }
+  #mlb2-43828466.ml-form-embedContainer .ml-form-embedWrapper .ml-form-embedBody .ml-form-formContent { margin: 0 0 20px 0; width: 100%; }
+  #mlb2-43828466.ml-form-embedContainer .ml-form-embedWrapper .ml-form-embedBody .ml-form-fieldRow { margin: 0 0 10px 0; width: 100%; }
+  #mlb2-43828466.ml-form-embedContainer .ml-form-embedWrapper .ml-form-embedBody .ml-form-fieldRow.ml-last-item { margin: 0; }
+  #mlb2-43828466.ml-form-embedContainer .ml-form-embedWrapper .ml-form-embedBody .ml-form-fieldRow input { background-color: #ffffff !important; color: #333333 !important; border-color: #cccccc; border-radius: 4px !important; border-style: solid !important; border-width: 1px !important; font-family: 'Open Sans', Arial, Helvetica, sans-serif; font-size: 14px !important; height: auto; line-height: 21px !important; padding: 10px 10px !important; width: 100% !important; box-sizing: border-box !important; }
+  #mlb2-43828466.ml-form-embedContainer .ml-form-embedWrapper .ml-form-embedBody .ml-form-embedSubmit { margin: 0 0 20px 0; float: left; width: 100%; }
+  #mlb2-43828466.ml-form-embedContainer .ml-form-embedWrapper .ml-form-embedBody .ml-form-embedSubmit button { background-color: #373737 !important; border: none !important; border-radius: 4px !important; box-shadow: none !important; color: #ffffff !important; cursor: pointer; font-family: 'Open Sans', Arial, Helvetica, sans-serif !important; font-size: 14px !important; font-weight: 700 !important; line-height: 21px !important; height: auto; padding: 10px !important; width: 100% !important; box-sizing: border-box !important; }
+  #mlb2-43828466.ml-form-embedContainer .ml-form-embedWrapper .ml-form-embedBody .ml-form-embedSubmit button.loading { display: none; }
+  #mlb2-43828466.ml-form-embedContainer .ml-form-embedWrapper .ml-form-embedBody .ml-form-embedSubmit button:hover { background-color: #333333 !important; }
+  #mlb2-43828466.ml-form-embedContainer .ml-form-embedWrapper .ml-form-embedBody .ml-form-embedPermissions .ml-form-embedPermissionsContent.privacy-policy p { color: #000000; font-family: 'Open Sans', Arial, Helvetica, sans-serif; font-size: 12px; line-height: 22px; margin: 0 0 10px 0; }
+  .ml-form-recaptcha { margin-bottom: 20px; }
+  @media screen and (max-width: 480px) { .ml-form-recaptcha { width: 220px!important } .g-recaptcha { transform: scale(0.78); -webkit-transform: scale(0.78); transform-origin: 0 0; -webkit-transform-origin: 0 0; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header>
+    <p class="brand">PROJECT RESCUE <span>TECHNOLOGY SOLUTIONS</span></p>
+    <h1>Vendor Control Reset Framework</h1>
+    <p class="subtitle">Re-Establishing Commercial Authority in At-Risk Technology Programs</p>
+    <p class="desc">When delivery destabilises, vendor control often shifts subtly away from the sponsor. Milestones drift. Accountability softens. Commercial leverage erodes. This framework outlines the structured steps required to re-establish sponsor authority without triggering unnecessary disruption.</p>
+  </header>
+
+  <div class="status-panel">
+    <div class="rag-dot" id="ragDot"></div>
+    <div class="status-text">Reset actions complete: <span class="label" id="statusLabel">0</span></div>
+    <div class="status-track"><div class="status-fill" id="statusFill"></div></div>
+    <div class="status-score" id="statusScore">0 / 20</div>
+  </div>
+
+  <div class="why-block">
+    <div class="why-head">Why Vendor Control Is Lost</div>
+    <p style="padding:14px 20px 0;font-size:14px;color:#3a3a3a;">Vendor control typically weakens when:</p>
+    <ul class="why-list" id="whyList"></ul>
+    <div class="why-result">The result: operational tolerance replaces commercial enforcement.</div>
+  </div>
+
+  <div class="indicator-block">
+    <div class="ib-head">Early Warning Indicators of Vendor Control Erosion
+      <div class="ib-sub">Vendor reset should be considered when:</div>
+    </div>
+    <div id="indicators"></div>
+    <div class="ib-footer">If three or more are present, leverage is likely compromised.</div>
+  </div>
+
+  <div class="section-heading">The Four-Phase Reset</div>
+
+  <div id="phases"></div>
+
+  <div class="principles">
+    <div class="principles-head">Principles of Effective Vendor Reset</div>
+    <ol id="principlesList"></ol>
+    <div class="principles-close">Vendor reset is about restoring control — not creating instability.</div>
+  </div>
+
+  <div class="reveal-cta">
+    <button class="reveal-btn" onclick="requestReveal()">Get My Vendor Reset Report</button>
+    <p class="reveal-hint">Reflects the erosion signals and phase actions you've checked above.</p>
+  </div>
+
+  <div class="gate-wrap" id="gateWrap">
+    <div class="gate-head">
+      <p class="eyebrow">Report ready</p>
+      <h2>Your vendor reset report is ready</h2>
+      <p>Enter your email to unlock your leverage position and phase-by-phase progress.</p>
+    </div>
+    <div class="gate-form-shell">
+      <div id="mlb2-43828466" class="ml-form-embedContainer ml-subscribe-form ml-subscribe-form-43828466">
+        <div class="ml-form-align-center ">
+          <div class="ml-form-embedWrapper embedForm">
+            <div class="ml-form-embedBody ml-form-embedBodyDefault row-form">
+              <div class="ml-form-embedContent" style=" ">
+                <h4>FREE RESOURCES</h4>
+                <p>Get your Vendor Control Reset Report.</p>
+              </div>
+              <form class="ml-block-form" action="https://assets.mailerlite.com/jsonp/2424384/forms/193183089645586046/subscribe" data-code="" method="post" target="_blank">
+                <div class="ml-form-formContent">
+                  <div class="ml-form-fieldRow ml-last-item">
+                    <div class="ml-field-group ml-field-email ml-validate-email ml-validate-required">
+                      <input aria-label="email" aria-required="true" type="email" class="form-control" data-inputmask="" name="fields[email]" placeholder="Email" autocomplete="email">
+                    </div>
+                  </div>
+                </div>
+                <div class="ml-form-embedPermissions" style="">
+                  <div class="ml-form-embedPermissionsContent default privacy-policy">
+                    <p>You can unsubscribe anytime. For more details, review our Privacy Policy.</p>
+                  </div>
+                </div>
+                <div class="ml-form-recaptcha ml-validate-required" style="float: left;">
+                  <div class="g-recaptcha" data-sitekey="6Lf1KHQUAAAAAFNKEX1hdSWCS3mRMv4FlFaNslaD"></div>
+                </div>
+                <input type="hidden" name="ml-submit" value="1">
+                <div class="ml-form-embedSubmit">
+                  <button type="submit" class="primary">Show My Report</button>
+                  <button disabled="disabled" style="display: none;" type="button" class="loading">
+                    <div class="ml-form-embedSubmitLoad"></div>
+                    <span class="sr-only">Loading...</span>
+                  </button>
+                </div>
+                <input type="hidden" name="anticsrf" value="true">
+              </form>
+            </div>
+            <div class="ml-form-successBody row-success" style="display: none">
+              <div class="ml-form-successContent">
+                <h4>Thank you!</h4>
+                <p>You have successfully joined our subscriber list.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="results" id="results">
+    <div class="result-banner" id="resultBanner">
+      <p class="eyebrow">Leverage position</p>
+      <h2 id="resultTitle"></h2>
+      <p class="band-score" id="resultBand"></p>
+    </div>
+    <div class="result-body">
+      <p id="resultText"></p>
+
+      <div class="breakdown-heading">Erosion Signals</div>
+      <div class="breakdown" id="indicatorBreakdown"></div>
+
+      <div class="breakdown-heading">Phase Progress</div>
+      <div class="breakdown" id="phaseBreakdown"></div>
+
+      <div class="cta-row">
+        <a class="cta" id="ctaLink" href="#" target="_blank" rel="noopener">See the 30-Day Recovery Roadmap →</a>
+        <button class="download-btn" onclick="downloadResultsPDF()">Download my report (PDF)</button>
+      </div>
+      <button class="reset-link" onclick="resetTool()">Start over</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const WHY_LOST = [
+  "Milestones are rebaselined without commercial adjustment",
+  "Acceptance criteria are loosely defined",
+  "Dependencies across vendors remain unresolved",
+  "Payments continue despite partial or disputed deliverables",
+  "Governance forums prioritise harmony over performance"
+];
+
+const INDICATORS = [
+  "Deliverables are accepted \u201csubject to later refinement\u201d",
+  "Payment continues despite milestone slippage",
+  "Disputes linger without resolution",
+  "Cross-vendor blame cycles become normalised",
+  "Sponsor hesitation prevents commercial enforcement"
+];
+
+const PHASES = [
+  {
+    title: "Contract Reality Check",
+    objective: "Establish Commercial Ground Truth",
+    note: "Before action, confirm what the contract actually says — versus what is being tolerated.",
+    actions: [
+      "Map all current deliverables to contractual obligations",
+      "Identify deviations between SOW and active scope",
+      "Review payment schedules against actual milestone performance",
+      "Quantify commercial exposure (cost-to-complete vs committed value)",
+      "Validate termination, step-in, and remediation clauses"
+    ],
+    outputs: ["Commercial Exposure Summary", "Contractual Misalignment Register", "Leverage Position Assessment"],
+    closing: "This phase restores clarity around legal and financial authority."
+  },
+  {
+    title: "Performance Re-baselining",
+    objective: "Reset Expectations to Measurable Standards",
+    note: "Programs drift when performance becomes interpretive.",
+    actions: [
+      "Redefine deliverables into measurable acceptance criteria",
+      "Introduce objective quality gates",
+      "Reconfirm critical path responsibilities across vendors",
+      "Align milestone dates to validated delivery capacity",
+      "Establish clear \u201cdefinition of done\u201d standards"
+    ],
+    outputs: ["Revised Milestone Schedule", "Acceptance Criteria Framework", "Vendor Accountability Matrix"],
+    closing: "This phase eliminates ambiguity."
+  },
+  {
+    title: "Governance Enforcement",
+    objective: "Re-Establish Structured Performance Management",
+    note: "Control is not regained through confrontation — but through structure.",
+    actions: [
+      "Appoint single accountable sponsor interface per vendor",
+      "Introduce formalised issue escalation timelines",
+      "Establish cross-vendor dependency resolution forums",
+      "Implement structured change control board",
+      "Require documented recovery plans for missed deliverables"
+    ],
+    outputs: ["Vendor Governance Charter", "Escalation & Resolution Protocol", "Performance Reporting Dashboard"],
+    closing: "This phase restores operational discipline."
+  },
+  {
+    title: "Commercial Leverage Restoration",
+    objective: "Re-Align Financial Incentives to Performance",
+    note: "If payments are decoupled from verified output, leverage is lost.",
+    actions: [
+      "Link payments strictly to accepted deliverables",
+      "Introduce holdbacks where contractual basis allows",
+      "Enforce remediation timelines tied to financial impact",
+      "Assess feasibility of vendor transition or augmentation",
+      "Prepare contingency execution plan if performance fails to recover"
+    ],
+    outputs: ["Revised Payment Alignment Model", "Remediation or Replacement Pathway", "Contingency Execution Plan"],
+    closing: "This phase restores sponsor authority while preserving delivery continuity."
+  }
+];
+
+const PRINCIPLES = [
+  "Act early — leverage diminishes over time",
+  "Anchor conversations in contract, not emotion",
+  "Reduce ambiguity in deliverables",
+  "Maintain professional tone — avoid public escalation theatrics",
+  "Preserve continuity wherever possible"
+];
+
+// Why Vendor Control Is Lost — reference list
+const whyList = document.getElementById('whyList');
+WHY_LOST.forEach(t => {
+  const li = document.createElement('li');
+  li.textContent = t;
+  whyList.appendChild(li);
+});
+
+// Early Warning Indicators — interactive
+const indicatorChecked = {};
+const indicatorsContainer = document.getElementById('indicators');
+INDICATORS.forEach((text, i) => {
+  const row = document.createElement('div');
+  row.className = 'item';
+  row.innerHTML = `
+    <input type="checkbox" id="chk-ind-${i}" data-key="${i}">
+    <label for="chk-ind-${i}">${text}</label>
+  `;
+  indicatorsContainer.appendChild(row);
+});
+indicatorsContainer.addEventListener('change', (e) => {
+  const box = e.target.closest('input[type="checkbox"]');
+  if (!box) return;
+  indicatorChecked[box.dataset.key] = box.checked;
+  update();
+});
+
+// Four-Phase Reset — interactive action checklists
+const actionChecked = {}; // "p{phaseIdx}-{actionIdx}" -> bool
+const totalActions = PHASES.reduce((s,p) => s + p.actions.length, 0);
+const phasesContainer = document.getElementById('phases');
+
+PHASES.forEach((phase, pi) => {
+  const el = document.createElement('div');
+  el.className = 'phase';
+
+  const head = document.createElement('div');
+  head.className = 'phase-head';
+  head.innerHTML = `
+    <span class="phase-num">${String(pi+1).padStart(2,'0')}</span><span class="phase-title">${phase.title}</span>
+    <div class="phase-objective"><strong>Objective:</strong> ${phase.objective}</div>
+  `;
+  el.appendChild(head);
+
+  const note = document.createElement('div');
+  note.className = 'phase-note';
+  note.textContent = phase.note;
+  el.appendChild(note);
+
+  const actionsLabel = document.createElement('div');
+  actionsLabel.className = 'section-label';
+  actionsLabel.textContent = 'Actions — to get this phase back on track';
+  el.appendChild(actionsLabel);
+
+  phase.actions.forEach((text, ai) => {
+    const key = `p${pi}-${ai}`;
+    const row = document.createElement('div');
+    row.className = 'item';
+    row.innerHTML = `
+      <input type="checkbox" id="chk-${key}" data-key="${key}">
+      <label for="chk-${key}">${text}</label>
+    `;
+    el.appendChild(row);
+  });
+
+  const progress = document.createElement('div');
+  progress.className = 'phase-progress';
+  progress.innerHTML = `<span id="phase-progress-label-${pi}">0 / ${phase.actions.length}</span><div class="phase-progress-track"><div class="phase-progress-fill" id="phase-progress-fill-${pi}"></div></div>`;
+  el.appendChild(progress);
+
+  const outputsLabel = document.createElement('div');
+  outputsLabel.className = 'section-label';
+  outputsLabel.textContent = 'Output';
+  el.appendChild(outputsLabel);
+
+  const ul = document.createElement('ul');
+  ul.className = 'outputs-list';
+  phase.outputs.forEach(o => {
+    const li = document.createElement('li');
+    li.textContent = o;
+    ul.appendChild(li);
+  });
+  el.appendChild(ul);
+
+  const footer = document.createElement('div');
+  footer.className = 'phase-footer';
+  footer.textContent = phase.closing;
+  el.appendChild(footer);
+
+  phasesContainer.appendChild(el);
+});
+
+phasesContainer.addEventListener('change', (e) => {
+  const box = e.target.closest('input[type="checkbox"]');
+  if (!box) return;
+  actionChecked[box.dataset.key] = box.checked;
+  update();
+});
+
+// Principles — reference list
+const principlesList = document.getElementById('principlesList');
+PRINCIPLES.forEach(p => {
+  const li = document.createElement('li');
+  li.textContent = p;
+  principlesList.appendChild(li);
+});
+
+function update() {
+  const totalActionsChecked = Object.values(actionChecked).filter(Boolean).length;
+
+  const dot = document.getElementById('ragDot');
+  const fill = document.getElementById('statusFill');
+  const label = document.getElementById('statusLabel');
+  const scoreEl = document.getElementById('statusScore');
+
+  const pct = (totalActionsChecked / totalActions) * 100;
+  fill.style.width = pct + '%';
+  label.textContent = totalActionsChecked;
+  scoreEl.textContent = `${totalActionsChecked} / ${totalActions}`;
+
+  let color = 'var(--rag-red)';
+  if (pct >= 85) color = 'var(--rag-green)';
+  else if (pct >= 40) color = 'var(--rag-amber)';
+  dot.style.background = getComputedStyleColor(color);
+  fill.style.background = getComputedStyleColor(color);
+
+  PHASES.forEach((phase, pi) => {
+    const done = phase.actions.filter((_, ai) => actionChecked[`p${pi}-${ai}`]).length;
+    const total = phase.actions.length;
+    document.getElementById(`phase-progress-label-${pi}`).textContent = `${done} / ${total}`;
+    const fillEl = document.getElementById(`phase-progress-fill-${pi}`);
+    fillEl.style.width = `${(done/total)*100}%`;
+  });
+}
+
+function getComputedStyleColor(varRef) {
+  const tmp = document.createElement('div');
+  tmp.style.color = varRef;
+  document.body.appendChild(tmp);
+  const c = getComputedStyle(tmp).color;
+  document.body.removeChild(tmp);
+  return c;
+}
+
+let unlocked = false;
+let lastResult = null;
+
+function requestReveal() {
+  computeResult();
+  if (unlocked) {
+    showResults();
+  } else {
+    const gate = document.getElementById('gateWrap');
+    gate.classList.add('show');
+    gate.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+}
+
+function computeResult() {
+  const indicatorResults = INDICATORS.map((text, i) => ({ text, present: !!indicatorChecked[i] }));
+  const indicatorCount = indicatorResults.filter(r => r.present).length;
+
+  const phaseResults = PHASES.map((phase, pi) => {
+    const total = phase.actions.length;
+    const done = phase.actions.filter((_, ai) => actionChecked[`p${pi}-${ai}`]).length;
+    return { title: phase.title, done, total, complete: done === total };
+  });
+
+  let status, statusColor, statusText, recommendedPhase;
+  if (indicatorCount === 0) {
+    status = 'Leverage Intact';
+    statusColor = 'var(--rag-green)';
+    statusText = 'No erosion signals are present. Commercial authority appears intact — maintain current discipline and monitor for early drift.';
+  } else if (indicatorCount <= 2) {
+    status = 'Early Erosion';
+    statusColor = 'var(--rag-amber)';
+    statusText = `${indicatorCount} of 5 erosion signals are present. Leverage is not yet compromised, but early action now is materially cheaper than a later reset.`;
+  } else {
+    status = 'Leverage Compromised';
+    statusColor = 'var(--rag-red)';
+    statusText = `${indicatorCount} of 5 erosion signals are present. Per this framework, three or more signals means vendor leverage is likely already compromised. Work through the four-phase reset below, starting with whichever phase has the least progress.`;
+  }
+
+  const firstIncomplete = phaseResults.find(p => !p.complete);
+  recommendedPhase = firstIncomplete ? firstIncomplete.title : 'All phases complete — maintain governance discipline';
+
+  lastResult = { indicatorResults, indicatorCount, phaseResults, status, statusColor, statusText, recommendedPhase };
+}
+
+function showResults() {
+  const results = document.getElementById('results');
+  const banner = document.getElementById('resultBanner');
+  const title = document.getElementById('resultTitle');
+  const bandText = document.getElementById('resultBand');
+  const text = document.getElementById('resultText');
+  const indicatorBreakdown = document.getElementById('indicatorBreakdown');
+  const phaseBreakdown = document.getElementById('phaseBreakdown');
+
+  banner.style.background = getComputedStyleColor(lastResult.statusColor);
+  title.textContent = lastResult.status;
+  bandText.textContent = `${lastResult.indicatorCount} of 5 erosion signals present`;
+  text.textContent = lastResult.statusText;
+
+  indicatorBreakdown.innerHTML = '';
+  lastResult.indicatorResults.forEach(r => {
+    const nameEl = document.createElement('div');
+    nameEl.className = 'name';
+    nameEl.textContent = r.text;
+    const valEl = document.createElement('div');
+    valEl.className = 'val ' + (r.present ? 'warn' : 'ok');
+    valEl.textContent = r.present ? 'Present' : 'Not present';
+    indicatorBreakdown.appendChild(nameEl);
+    indicatorBreakdown.appendChild(valEl);
+  });
+
+  phaseBreakdown.innerHTML = '';
+  lastResult.phaseResults.forEach(p => {
+    const nameEl = document.createElement('div');
+    nameEl.className = 'name';
+    nameEl.textContent = p.title;
+    const valEl = document.createElement('div');
+    valEl.className = 'val ' + (p.complete ? 'ok' : 'warn');
+    valEl.textContent = `${p.done} / ${p.total}${p.complete ? ' ✓' : ''}`;
+    phaseBreakdown.appendChild(nameEl);
+    phaseBreakdown.appendChild(valEl);
+  });
+  const recName = document.createElement('div');
+  recName.className = 'name';
+  recName.textContent = 'Recommended starting point';
+  const recVal = document.createElement('div');
+  recVal.className = 'val';
+  recVal.textContent = lastResult.recommendedPhase;
+  phaseBreakdown.appendChild(recName);
+  phaseBreakdown.appendChild(recVal);
+
+  document.getElementById('gateWrap').classList.remove('show');
+  results.classList.add('show');
+  results.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+// Called by MailerLite's webform script on successful subscribe.
+function ml_webform_success_43828466() {
+  var $ = window.ml_jQuery || window.jQuery;
+  if ($) {
+    $('.ml-subscribe-form-43828466 .row-success').show();
+    $('.ml-subscribe-form-43828466 .row-form').hide();
+  }
+  unlocked = true;
+  showResults();
+}
+
+function rgbFromVar(varRef) {
+  const rgbStr = getComputedStyleColor(varRef);
+  const m = rgbStr.match(/\d+/g);
+  return m ? m.slice(0,3).map(Number) : [0,0,0];
+}
+
+function downloadResultsPDF() {
+  if (!lastResult || !window.jspdf) return;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 48;
+  let y = 0;
+
+  const charcoal = [35, 35, 35];
+  const orange = [224, 69, 27];
+  const ink = [28, 28, 28];
+  const muted = [107, 107, 107];
+  const statusColor = rgbFromVar(lastResult.statusColor);
+
+  doc.setFillColor(...charcoal);
+  doc.rect(0, 0, pageWidth, 96, 'F');
+  doc.setFillColor(...orange);
+  doc.rect(pageWidth - 6, 0, 6, 96, 'F');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(...orange);
+  doc.text('PROJECT RESCUE', margin, 38);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(200, 200, 200);
+  doc.text('TECHNOLOGY SOLUTIONS', margin + 128, 38);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.setTextColor(246, 245, 242);
+  doc.text('Vendor Control Reset Report', margin, 68);
+
+  y = 96 + 34;
+
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(...muted);
+  doc.text(`Assessment date: ${dateStr}`, margin, y);
+  y += 28;
+
+  doc.setFillColor(...statusColor);
+  doc.rect(margin, y, pageWidth - margin * 2, 60, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.setTextColor(255, 255, 255);
+  doc.text(lastResult.status, margin + 16, y + 26);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.text(`${lastResult.indicatorCount} of 5 erosion signals present`, margin + 16, y + 46);
+  y += 60 + 24;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.setTextColor(...ink);
+  const wrapped = doc.splitTextToSize(lastResult.statusText, pageWidth - margin * 2);
+  doc.text(wrapped, margin, y);
+  y += wrapped.length * 14 + 24;
+
+  function checkPageBreak(needed) {
+    const pageHeight = doc.internal.pageSize.getHeight();
+    if (y + needed > pageHeight - 60) {
+      doc.addPage();
+      y = 48;
+    }
+  }
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.setTextColor(...charcoal);
+  doc.text('Erosion Signals Checked', margin, y);
+  y += 10;
+  doc.setDrawColor(216, 213, 205);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 22;
+
+  lastResult.indicatorResults.forEach(r => {
+    checkPageBreak(24);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10.5);
+    doc.setTextColor(...ink);
+    const wrappedText = doc.splitTextToSize(r.text, pageWidth - margin * 2 - 90);
+    doc.text(wrappedText, margin, y);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...(r.present ? [178,58,46] : [63,115,80]));
+    doc.text(r.present ? 'Present' : 'Not present', pageWidth - margin - 70, y);
+    y += (wrappedText.length * 13) + 8;
+  });
+
+  y += 12;
+  checkPageBreak(40);
+  doc.setDrawColor(216, 213, 205);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 24;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.setTextColor(...charcoal);
+  doc.text('Phase Progress', margin, y);
+  y += 10;
+  doc.setDrawColor(216, 213, 205);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 22;
+
+  lastResult.phaseResults.forEach(p => {
+    checkPageBreak(24);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.setTextColor(...ink);
+    doc.text(p.title, margin, y);
+
+    const barX = pageWidth - margin - 140;
+    const barW = 90;
+    doc.setFillColor(230, 228, 222);
+    doc.rect(barX, y - 9, barW, 8, 'F');
+    doc.setFillColor(...(p.complete ? [63,115,80] : [178,58,46]));
+    doc.rect(barX, y - 9, barW * (p.done / p.total), 8, 'F');
+
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${p.done} / ${p.total}`, pageWidth - margin - 40, y);
+    y += 24;
+  });
+
+  y += 12;
+  checkPageBreak(40);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(...charcoal);
+  doc.text('Recommended starting point', margin, y);
+  y += 18;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.setTextColor(...ink);
+  doc.text(lastResult.recommendedPhase, margin, y);
+
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    const pageHeight = doc.internal.pageSize.getHeight();
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...muted);
+    doc.text('Generated by the Project Rescue Vendor Control Reset Framework', margin, pageHeight - 32);
+  }
+
+  doc.save('vendor-control-reset-report.pdf');
+}
+
+function resetTool() {
+  Object.keys(indicatorChecked).forEach(k => delete indicatorChecked[k]);
+  Object.keys(actionChecked).forEach(k => delete actionChecked[k]);
+  document.querySelectorAll('input[type="checkbox"]').forEach(b => b.checked = false);
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('gateWrap').classList.remove('show');
+  unlocked = false;
+  lastResult = null;
+  update();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+update();
+</script>
+
+<script src="https://www.google.com/recaptcha/api.js"></script>
+<script src="https://groot.mailerlite.com/js/w/webforms.min.js?v83147fa8ce2d95cb73ece7f28b469519" type="text/javascript"></script>
+<script>
+  fetch("https://assets.mailerlite.com/jsonp/2424384/forms/193183089645586046/takel");
+</script>
+
+</body>
+</html>
